@@ -139,11 +139,11 @@ This document provides details on the KEGG Pathway Analysis Subscript, a compone
 This subscript requires R and several Bioconductor packages. Ensure you have the following installed:
 - R (Version 3.6.0 or later recommended)
 - Bioconductor packages:
-  - AnnotationDbi
-  - org.Hs.eg.db
-  - pathview
-  - gage
-  - gageData
+  - `AnnotationDbi`
+  - `org.Hs.eg.db`
+  - `pathview`
+  - `gage`
+  - `gageData`
 
 To install Bioconductor and the required packages, execute the following in R:
 ```r
