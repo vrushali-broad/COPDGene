@@ -30,11 +30,11 @@ pip install pandas seaborn matplotlib
 
 
 
-# Differential Expression Analysis for COPD and ACO
+## Differential Expression Analysis for COPD and ACO
 
 This repository hosts a crucial upstream script within the `[Your Package Name]` package, designed for researchers and bioinformaticians focusing on Chronic Obstructive Pulmonary Disease (COPD) and Asthma-COPD Overlap (ACO). Utilizing a robust set of R packages, this script facilitates comprehensive differential expression analysis, from data preprocessing and normalization to advanced statistical testing and enrichment analysis.
 
-## Key Features
+### Key Features
 
 - **Comprehensive Data Preprocessing**: Prepares gene expression data for analysis, supporting gene annotation and filtering.
 - **Advanced Statistical Testing**: Leverages `limma` and `edgeR` for robust differential expression analysis.
@@ -43,11 +43,11 @@ This repository hosts a crucial upstream script within the `[Your Package Name]`
 - **Detailed Logging**: Features custom logging for enhanced traceability and reproducibility of analysis results.
 - **Visualization Support**: Provides tools for the visualization of analysis outcomes, aiding in the interpretation of complex datasets.
 
-## Prerequisites
+### Prerequisites
 
 Before running this script, ensure that you have R installed (version 3.6.0 or later recommended) along with the following packages: `limma`, `edgeR`, `org.Hs.eg.db`, `data.table`, and `biomaRt`.
 
-### Installation Instructions
+#### Installation Instructions
 
 To install the necessary R packages, run the following commands in your R environment:
 
@@ -57,19 +57,19 @@ if (!requireNamespace("BiocManager", quietly = TRUE))
 
 BiocManager::install(c("limma", "edgeR", "org.Hs.eg.db", "data.table", "biomaRt"))
 ```
-### Usage
+#### Usage
 Ensure your workflow is set up correctly with these steps:
 
-### Prepare Your Data
+#### Prepare Your Data
 Ensure differential expression data is in CSV format with gene IDs and log fold changes.
 
-### Configure the Script
+#### Configure the Script
 Adjust script parameters, including data file path and analysis settings, as needed.
 
-### Execute the Analysis
+#### Execute the Analysis
 Run the script in R to conduct the analysis and generate visualizations.
 
-#### Example
+##### Example
 
 ```r
 # Example code demonstrating script configuration and execution
@@ -83,11 +83,11 @@ load_data(PATH)
 # Additional analysis commands
 ```
 
-# Enrichment Analysis Script for COPD and ACO
+## Enrichment Analysis Script for COPD and ACO
 
 This repository hosts the `Enrichment Analysis Script`, a key component of the `[Your Package Name]` package, designed for genomic researchers focusing on Chronic Obstructive Pulmonary Disease (COPD) and Asthma-COPD Overlap (ACO). This script leverages a suite of Bioconductor packages to perform comprehensive KEGG pathway and GO term enrichment analysis, visualization, and data logging for differential expression data.
 
-## Features
+### Features
 
 - **KEGG Pathway Analysis**: Identifies significant pathways related to the disease condition using the `clusterProfiler` package.
 - **GO Term Enrichment**: Analyzes gene ontology terms associated with differentially expressed genes.
@@ -95,11 +95,11 @@ This repository hosts the `Enrichment Analysis Script`, a key component of the `
 - **Data Preprocessing and Mapping**: Prepares data for analysis, including mapping between gene IDs.
 - **Logging**: Detailed logging of actions and package versions for reproducibility.
 
-## Prerequisites
+### Prerequisites
 
 Ensure you have R installed (version 3.6.0 or later recommended) along with the following packages: `limma`, `edgeR`, `clusterProfiler`, `org.Hs.eg.db`, `enrichplot`, `GOplot`, `data.table`, and `dplyr`.
 
-### Installation Instructions
+#### Installation Instructions
 
 To install the necessary R packages, run the following commands in your R environment:
 
@@ -109,18 +109,18 @@ if (!requireNamespace("BiocManager", quietly = TRUE))
 
 BiocManager::install(c("limma", "edgeR", "clusterProfiler", "org.Hs.eg.db", "enrichplot", "GOplot", "data.table", "dplyr"))
 ```
-## Usage
+### Usage
 
-### Prepare Your Data
+#### Prepare Your Data
 Ensure your differential expression data is in CSV format with gene IDs and log fold changes.
 
-### Configure the Script
+#### Configure the Script
 Adjust the script's parameters, including the data file path and KEGG pathway IDs, to suit your analysis needs.
 
-### Execute the Analysis
+#### Execute the Analysis
 Run the script within the parent package environment to perform the analysis and generate visualizations.
 
-#### Example
+##### Example
 
 ```r
 # Define color settings for visualization
@@ -130,15 +130,15 @@ colors_copd <- list(high = '#A6CDC7', low = '#e89fb4', mid = 'gray88')
 plot_kegg_pathway(data_file = 'path/to/your/data.csv', kegg_id = 'hsa04217', colors = colors_copd)
 ```
 
-## Contributing
+### Contributing
 
 Contributions to improve this script and the larger package are welcome. Please fork the repository, make your changes, and submit a pull request.
 
-## License
+### License
 
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
 
-## Acknowledgements
+### Acknowledgements
 
 Special thanks to [Channing Division of Network Medicine, Harvard Medical School, Boston, MA] for supporting this project, and to all contributors for their invaluable input.
 
@@ -150,12 +150,12 @@ Special thanks to [Channing Division of Network Medicine, Harvard Medical School
 #######################################
 
 
-# KEGG Pathway Analysis Subscript
+## KEGG Pathway Analysis Subscript
 
-## Overview
+### Overview
 This document provides details on the KEGG Pathway Analysis Subscript, a component of the larger [Your Package Name] package designed for comprehensive analysis of genomic data. This subscript specifically focuses on performing KEGG pathway analysis and visualization, leveraging high-throughput differential expression data to elucidate the mechanisms underlying conditions such as COPD and ACO.
 
-## Dependencies
+### Dependencies
 This subscript requires R and several Bioconductor packages. Ensure you have the following installed:
 - R (Version 3.6.0 or later recommended)
 - Bioconductor packages:
@@ -173,20 +173,20 @@ if (!requireNamespace("BiocManager", quietly = TRUE))
 BiocManager::install(c("AnnotationDbi", "org.Hs.eg.db", "pathview", "gage", "gageData"))
 ```
 
-## Usage
+### Usage
 
 This subscript is part of the `ACO Manuscript` package, focusing on KEGG pathway analysis. To use this script effectively:
 
-### Prepare your data
+#### Prepare your data
 Ensure your differential expression data is in a CSV format with gene IDs and log fold changes.
 
-### Configure the script
+#### Configure the script
 Modify the script's parameters, including the data file path and KEGG pathway IDs, to match your analysis requirements.
 
-### Execute the analysis
+#### Execute the analysis
 Run the script from the parent package's environment to generate pathway plots.
 
-#### Example usage
+##### Example usage
 
 ```r
 # Configuring color settings for the analysis
