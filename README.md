@@ -130,18 +130,6 @@ colors_copd <- list(high = '#A6CDC7', low = '#e89fb4', mid = 'gray88')
 plot_kegg_pathway(data_file = 'path/to/your/data.csv', kegg_id = 'hsa04217', colors = colors_copd)
 ```
 
-### Contributing
-
-Contributions to improve this script and the larger package are welcome. Please fork the repository, make your changes, and submit a pull request.
-
-### License
-
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
-
-### Acknowledgements
-
-Special thanks to [Channing Division of Network Medicine, Harvard Medical School, Boston, MA] for supporting this project, and to all contributors for their invaluable input.
-
 > **Note:** Make sure to replace placeholder text (e.g., `path/to/your/data.csv`, `hsa04217`, `[Your Organization Name]`) with the actual information related to your project. This format helps users to easily understand how to prepare their data, configure, and execute the analysis, along with guiding contributors on how to contribute to the project.
 
 
@@ -195,3 +183,16 @@ colors_copd <- list(high = '#A6CDC7', low = '#e89fb4', mid = 'gray88')
 # Performing KEGG pathway analysis
 plot_kegg_pathway(data_file = 'path/to/your/data.csv', kegg_id = 'hsa04217', colors = colors_copd)
 ```
+
+### Contributing
+
+Contributions to improve this script and the larger package are welcome. Please fork the repository, make your changes, and submit a pull request.
+
+### License
+
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
+
+### Acknowledgements
+
+Special thanks to [Channing Division of Network Medicine, Harvard Medical School, Boston, MA] for supporting this project, and to all contributors for their invaluable input.
+
