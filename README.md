@@ -43,7 +43,7 @@ This repository hosts a crucial upstream script within the `COPDGene cohort anal
 
 Before running this script, ensure that you have R installed (version 3.6.0 or later recommended) along with the following packages: 
  - `limma`
- - `edgeR`,
+ - `edgeR`
  - `org.Hs.eg.db`
  - `data.table`
  - `biomaRt`
@@ -98,7 +98,15 @@ This repository hosts the `Enrichment Analysis Script`, a key component of the `
 
 ### Prerequisites
 
-Ensure you have R installed (version 3.6.0 or later recommended) along with the following packages: `limma`, `edgeR`, `clusterProfiler`, `org.Hs.eg.db`, `enrichplot`, `GOplot`, `data.table`, and `dplyr`.
+Ensure you have R installed (version 3.6.0 or later recommended) along with the following packages: 
+   - `limma`
+   - `edgeR`
+   - `clusterProfiler`
+   - `org.Hs.eg.db`
+   - `enrichplot`
+   - `GOplot`
+   - `data.table`
+   - `dplyr`
 
 #### Installation Instructions
 
