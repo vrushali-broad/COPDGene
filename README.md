@@ -41,7 +41,12 @@ This repository hosts a crucial upstream script within the `COPDGene cohort anal
 
 ### Prerequisites
 
-Before running this script, ensure that you have R installed (version 3.6.0 or later recommended) along with the following packages: `limma`, `edgeR`, `org.Hs.eg.db`, `data.table`, and `biomaRt`.
+Before running this script, ensure that you have R installed (version 3.6.0 or later recommended) along with the following packages: 
+ - `limma`
+ - `edgeR`,
+ - `org.Hs.eg.db`
+ - `data.table`
+ - `biomaRt`
 
 #### Installation Instructions
 
