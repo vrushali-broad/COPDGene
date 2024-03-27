@@ -32,7 +32,7 @@ pip install pandas seaborn matplotlib
 
 ## Differential Expression Analysis for COPD and ACO
 
-This repository hosts a crucial upstream script within the `[Your Package Name]` package, designed for researchers and bioinformaticians focusing on Chronic Obstructive Pulmonary Disease (COPD) and Asthma-COPD Overlap (ACO). Utilizing a robust set of R packages, this script facilitates comprehensive differential expression analysis, from data preprocessing and normalization to advanced statistical testing and enrichment analysis.
+This repository hosts a crucial upstream script within the `[COPDGene cohort analysis]` package, designed for researchers and bioinformaticians focusing on Chronic Obstructive Pulmonary Disease (COPD) and Asthma-COPD Overlap (ACO). Utilizing a robust set of R packages, this script facilitates comprehensive differential expression analysis, from data preprocessing and normalization to advanced statistical testing and enrichment analysis.
 
 ### Key Features
 
