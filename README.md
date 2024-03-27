@@ -28,7 +28,7 @@ pip install pandas seaborn matplotlib
 
 ## Differential Expression Analysis for COPD and ACO
 
-This repository hosts a crucial upstream script within the `[COPDGene cohort analysis]` package, designed for researchers and bioinformaticians focusing on Chronic Obstructive Pulmonary Disease (COPD) and Asthma-COPD Overlap (ACO). Utilizing a robust set of R packages, this script facilitates comprehensive differential expression analysis, from data preprocessing and normalization to advanced statistical testing and enrichment analysis.
+This repository hosts a crucial upstream script within the `COPDGene cohort analysis` package, designed for researchers and bioinformaticians focusing on Chronic Obstructive Pulmonary Disease (COPD) and Asthma-COPD Overlap (ACO). Utilizing a robust set of R packages, this script facilitates comprehensive differential expression analysis, from data preprocessing and normalization to advanced statistical testing and enrichment analysis.
 
 ### Key Features
 
@@ -81,7 +81,7 @@ load_data(PATH)
 
 ## Enrichment Analysis Script for COPD and ACO
 
-This repository hosts the `Enrichment Analysis Script`, a key component of the `[COPDGene cohort analysis]` package, designed for genomic researchers focusing on Chronic Obstructive Pulmonary Disease (COPD) and Asthma-COPD Overlap (ACO). This script leverages a suite of Bioconductor packages to perform comprehensive KEGG pathway and GO term enrichment analysis, visualization, and data logging for differential expression data.
+This repository hosts the `Enrichment Analysis Script`, a key component of the `COPDGene cohort analysis` package, designed for genomic researchers focusing on Chronic Obstructive Pulmonary Disease (COPD) and Asthma-COPD Overlap (ACO). This script leverages a suite of Bioconductor packages to perform comprehensive KEGG pathway and GO term enrichment analysis, visualization, and data logging for differential expression data.
 
 ### Features
 
@@ -133,7 +133,7 @@ plot_kegg_pathway(data_file = 'path/to/your/data.csv', kegg_id = 'hsa04217', col
 ## KEGG Pathway Analysis Subscript
 
 ### Overview
-This document provides details on the KEGG Pathway Analysis Subscript, a component of the larger [COPDGene cohort analysis] package designed for comprehensive analysis of genomic data. This subscript specifically focuses on performing KEGG pathway analysis and visualization, leveraging high-throughput differential expression data to elucidate the mechanisms underlying conditions such as COPD and ACO.
+This document provides details on the KEGG Pathway Analysis Subscript, a component of the larger `COPDGene cohort analysis` package designed for comprehensive analysis of genomic data. This subscript specifically focuses on performing KEGG pathway analysis and visualization, leveraging high-throughput differential expression data to elucidate the mechanisms underlying conditions such as COPD and ACO.
 
 ### Dependencies
 This subscript requires R and several Bioconductor packages. Ensure you have the following installed:
