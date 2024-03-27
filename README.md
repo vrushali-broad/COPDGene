@@ -26,10 +26,6 @@ pip install pandas seaborn matplotlib
 ```
 
 
-
-
-
-
 ## Differential Expression Analysis for COPD and ACO
 
 This repository hosts a crucial upstream script within the `[COPDGene cohort analysis]` package, designed for researchers and bioinformaticians focusing on Chronic Obstructive Pulmonary Disease (COPD) and Asthma-COPD Overlap (ACO). Utilizing a robust set of R packages, this script facilitates comprehensive differential expression analysis, from data preprocessing and normalization to advanced statistical testing and enrichment analysis.
@@ -132,10 +128,6 @@ plot_kegg_pathway(data_file = 'path/to/your/data.csv', kegg_id = 'hsa04217', col
 
 > **Note:** Make sure to replace placeholder text (e.g., `path/to/your/data.csv`, `hsa04217`, `[Your Organization Name]`) with the actual information related to your project. This format helps users to easily understand how to prepare their data, configure, and execute the analysis, along with guiding contributors on how to contribute to the project.
 
-
-
-#######################################
-#######################################
 
 
 ## KEGG Pathway Analysis Subscript
