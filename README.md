@@ -194,5 +194,5 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 
 ### Acknowledgements
 
-Special thanks to [Channing Division of Network Medicine, Harvard Medical School, Boston, MA][https://www.brighamandwomens.org/research/departments/channing-division-of-network-medicine/overview] for supporting this project, and to all contributors for their invaluable input.
+Special thanks to Channing Division of Network Medicine, Harvard Medical School, Boston, MA for supporting this project, and to all contributors for their invaluable input.
 
