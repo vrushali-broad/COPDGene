@@ -82,3 +82,116 @@ lfc_threshold <- 0.5  # Log fold change threshold
 load_data(PATH)
 # Additional analysis commands
 ```
+
+# Enrichment Analysis Script for COPD and ACO
+
+This repository hosts the `Enrichment Analysis Script`, a key component of the `[Your Package Name]` package, designed for genomic researchers focusing on Chronic Obstructive Pulmonary Disease (COPD) and Asthma-COPD Overlap (ACO). This script leverages a suite of Bioconductor packages to perform comprehensive KEGG pathway and GO term enrichment analysis, visualization, and data logging for differential expression data.
+
+## Features
+
+- **KEGG Pathway Analysis**: Identifies significant pathways related to the disease condition using the `clusterProfiler` package.
+- **GO Term Enrichment**: Analyzes gene ontology terms associated with differentially expressed genes.
+- **Visualization**: Generates chord and tree diagrams for enriched pathways and terms, facilitating intuitive interpretation of results.
+- **Data Preprocessing and Mapping**: Prepares data for analysis, including mapping between gene IDs.
+- **Logging**: Detailed logging of actions and package versions for reproducibility.
+
+## Prerequisites
+
+Ensure you have R installed (version 3.6.0 or later recommended) along with the following packages: `limma`, `edgeR`, `clusterProfiler`, `org.Hs.eg.db`, `enrichplot`, `GOplot`, `data.table`, and `dplyr`.
+
+### Installation Instructions
+
+To install the necessary R packages, run the following commands in your R environment:
+
+```r
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install(c("limma", "edgeR", "clusterProfiler", "org.Hs.eg.db", "enrichplot", "GOplot", "data.table", "dplyr"))
+```
+## Usage
+
+### Prepare Your Data
+Ensure your differential expression data is in CSV format with gene IDs and log fold changes.
+
+### Configure the Script
+Adjust the script's parameters, including the data file path and KEGG pathway IDs, to suit your analysis needs.
+
+### Execute the Analysis
+Run the script within the parent package environment to perform the analysis and generate visualizations.
+
+#### Example
+
+```r
+# Define color settings for visualization
+colors_copd <- list(high = '#A6CDC7', low = '#e89fb4', mid = 'gray88')
+
+# Perform KEGG pathway analysis for COPD
+plot_kegg_pathway(data_file = 'path/to/your/data.csv', kegg_id = 'hsa04217', colors = colors_copd)
+```
+
+## Contributing
+
+Contributions to improve this script and the larger package are welcome. Please fork the repository, make your changes, and submit a pull request.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
+
+## Acknowledgements
+
+Special thanks to [Channing Division of Network Medicine, Harvard Medical School, Boston, MA] for supporting this project, and to all contributors for their invaluable input.
+
+> **Note:** Make sure to replace placeholder text (e.g., `path/to/your/data.csv`, `hsa04217`, `[Your Organization Name]`) with the actual information related to your project. This format helps users to easily understand how to prepare their data, configure, and execute the analysis, along with guiding contributors on how to contribute to the project.
+
+
+
+#######################################
+#######################################
+
+
+# KEGG Pathway Analysis Subscript
+
+## Overview
+This document provides details on the KEGG Pathway Analysis Subscript, a component of the larger [Your Package Name] package designed for comprehensive analysis of genomic data. This subscript specifically focuses on performing KEGG pathway analysis and visualization, leveraging high-throughput differential expression data to elucidate the mechanisms underlying conditions such as COPD and ACO.
+
+## Dependencies
+This subscript requires R and several Bioconductor packages. Ensure you have the following installed:
+- R (Version 3.6.0 or later recommended)
+- Bioconductor packages:
+  - AnnotationDbi
+  - org.Hs.eg.db
+  - pathview
+  - gage
+  - gageData
+
+To install Bioconductor and the required packages, execute the following in R:
+```r
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install(c("AnnotationDbi", "org.Hs.eg.db", "pathview", "gage", "gageData"))
+```
+
+## Usage
+
+This subscript is part of the `ACO Manuscript` package, focusing on KEGG pathway analysis. To use this script effectively:
+
+### Prepare your data
+Ensure your differential expression data is in a CSV format with gene IDs and log fold changes.
+
+### Configure the script
+Modify the script's parameters, including the data file path and KEGG pathway IDs, to match your analysis requirements.
+
+### Execute the analysis
+Run the script from the parent package's environment to generate pathway plots.
+
+#### Example usage
+
+```r
+# Configuring color settings for the analysis
+colors_copd <- list(high = '#A6CDC7', low = '#e89fb4', mid = 'gray88')
+
+# Performing KEGG pathway analysis
+plot_kegg_pathway(data_file = 'path/to/your/data.csv', kegg_id = 'hsa04217', colors = colors_copd)
+```
