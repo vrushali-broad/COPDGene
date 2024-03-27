@@ -15,7 +15,15 @@ This repository contains a Python script designed for the processing, analysis, 
 - `pandas`
 - `seaborn`
 - `matplotlib`
-- Custom modules: `visualization_helpers`, `data_processing`, `patient_classification`, `patient_statistics`, `analyze_symptoms`, `analyze_cbc`, `correct_confounders_pft`, `correct_confounders_ct`
+- Custom modules:
+     - `visualization_helpers`
+     - `data_processing`
+     - `patient_classification`
+     - `patient_statistics`
+     - `analyze_symptoms`
+     - `analyze_cbc`
+     - `correct_confounders_pft`
+     - `correct_confounders_ct`
 
 ## Installation
 
