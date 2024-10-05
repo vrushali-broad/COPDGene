@@ -15,7 +15,6 @@ import warnings
 warnings.filterwarnings('ignore')
 
 
-
 # # Create a dictionary to hold the library versions
 # import statannot
 # versions = {
@@ -61,7 +60,7 @@ def generate_valid_linux_filename(name):
 ################ Generates different types of plots #################
 #####################################################################
 
-def plot(pheno, features, order, names, dir_name, plot_type, figsize=(3,3), palette=['#D3D3D3','#AFE4DE','#FAA07A','#FCFBCB'], pvalues=None, sig=False, pert=False, apply_corrections = False):
+def plot(pheno, features, order, names, dir_name, plot_type, figsize=(3,3), palette=['#D3D3D3','#AFE4DE','#FAA07A','#FCFBCB'], pvalues=None, sig=False, pert=False, apply_corrections = False, hue = None):
     """
     Create various types of plots for the given features.
 
@@ -86,9 +85,7 @@ def plot(pheno, features, order, names, dir_name, plot_type, figsize=(3,3), pale
         name = 'disease_' + names[i] + '.pdf'
         name = generate_valid_linux_filename(name)
         
-        # Round your 'Value' data to four decimal places
-        # pheno[feature] = pheno[feature].round(4)
-
+        
         ax = None
         if plot_type == 'bar':
             ax = sns.barplot(data=pheno, 
@@ -104,22 +101,7 @@ def plot(pheno, features, order, names, dir_name, plot_type, figsize=(3,3), pale
                              linewidth=1, 
                              edgecolor=".5", 
                              width=0.70)
-            
-            # Options in sns.barplot --> standard error of the mean (SEM), standard deviation (SD), confidence intervals (CI), or interquartile range (IQR)
-#             # Calculating means and standard errors for each disease category
-#             grouped_data = pheno.groupby('Disease')[feature]
-#             means = grouped_data.mean().reindex(order)
-#             stds = grouped_data.std().reindex(order)
-#             counts = grouped_data.count().reindex(order)
-#             sems = stds / np.sqrt(counts)
 
-#             # Logging means and SEMs in the specified format
-#             for disease in order:
-#                 mean = means.get(disease, 0)
-#                 sem = sems.get(disease, 0)
-#                 logging.info(f"{disease} --> {feature}: Mean (SEM) = {mean:.4f} ({sem:.4f})")
-                
-    
             # Calculate means and 95% confidence intervals
             grouped_data = pheno.groupby('Disease')[feature]
             means = grouped_data.mean().reindex(order)
@@ -128,19 +110,56 @@ def plot(pheno, features, order, names, dir_name, plot_type, figsize=(3,3), pale
                 scale=scipy.stats.sem(grp.dropna())) if len(grp.dropna()) > 1 else (np.nan, np.nan))
 
             # Print means and 95% confidence intervals
+            # Calculate counts for each group
+            counts = pheno['Disease'].value_counts().reindex(order)
+            # Calculate missing data for each group
+            missing_data = pheno.groupby('Disease')[feature].apply(lambda x: x.isnull().sum()).reindex(order)
+
             for disease in order:
                 mean = means.get(disease, None)
                 ci = cis.get(disease, None)
+                if pert and mean is not None and ci is not None:
+                    # Multiply mean and CI by 100
+                    mean *= 100
+                    ci = [x * 100 for x in ci]
+                nonna = pheno.groupby('Disease')[feature].apply(lambda x: x.notnull().sum()).reindex(order)
+                count = nonna.get(disease, None)  # Get the count for the disease
                 if mean is not None and not any(np.isnan(ci)):
-                    print(f"{disease} --> {feature}: Mean = {mean:.2f}, 95% CI = [{ci[0]:.2f}, {ci[1]:.2f}]")
+                    print(f"{disease} --> {feature}: Count = {count},  Mean = {mean:.2f}, 95% CI = [{ci[0]:.2f}, {ci[1]:.2f}]")
                 else:
-                    print(f"{disease} --> {feature}: Mean = {mean:.2f}, 95% CI = Not Available")
+                    print(f"{disease} --> {feature}: Count = {count},  Mean = {mean:.2f}, 95% CI = Not Available")
 
             if pert:
                 # Convert y-tick labels to percentages
                 locs, labels = plt.yticks()  # Get current y-ticks
                 plt.yticks(locs, [f"{loc * 100:.0f}" for loc in locs])  # Set new y-tick labels to percentages
-                # plt.yticks(locs, [f"{loc * 100:.0f}%" for loc in locs])  # Set new y-tick labels to percentages
+                
+            # else:
+            #     # locs, labels = plt.yticks()  # Get current y-ticks
+            ylim = ax.get_ylim()
+            # Calculate the new y-limits
+            new_ylim = (ylim[0], ylim[1] * 1.1)
+            if feature == 'ShrtBrthAttk_P2':
+                    new_ylim = (ylim[0], ylim[1] * 1.15)
+            ax.set_ylim(new_ylim)
+                
+            ## Write sample size on the plot
+            # Determine the top y-limit of the plot
+            y_max = ax.get_ylim()[1]
+
+            # Annotate bars with sample sizes just below the top line of the bounding box
+            # counts = pheno['Disease'].value_counts().reindex(order)
+            nonna_counts = pheno.groupby('Disease')[feature].apply(lambda x: x.notnull().sum()).reindex(order)
+            for j, count in enumerate(nonna_counts):
+                ax.annotate(f'{count}',#f'N={count}', f'N={count}', 
+                            xy=(j, y_max), 
+                            xycoords='data', 
+                            textcoords='offset points', 
+                            va='top', 
+                            ha='center', 
+                            fontsize=12, 
+                            color= '#494949',
+                            xytext=(0, -5))  # Adjust the offset as needed
 
         elif plot_type == 'box':
             ax = sns.boxplot(data=pheno, 
@@ -155,24 +174,34 @@ def plot(pheno, features, order, names, dir_name, plot_type, figsize=(3,3), pale
                              **PROPS,
                             )
             
-            # We use scipy.stats.t.interval to calculate the 95% confidence interval for each disease category, assuming the data are normally distributed and the sample sizes are sufficient for the t-distribution to apply.
-            # The 0.95 within scipy.stats.t.interval represents the 95% confidence level.
-            # len(x)-1 is used for degrees of freedom, where x is the group of values for each disease category.
-            # loc=np.mean(x) specifies the mean around which to calculate the confidence interval.
-            # scale=scipy.stats.sem(x) sets the standard error of the mean as the scaling factor for the interval.
+            locs, labels = plt.yticks()  # Get current y-ticks
+            ylim = ax.get_ylim()
+            # Calculate the new y-limits
+            new_ylim = (ylim[0], ylim[1] * 1.02)
+            # print('---->', feature)
+            if feature == 'Adjusted_yeojohnson_Resting_SaO2_P2':
+                new_ylim = (ylim[0], ylim[1] + 0.5)
+                
+            ax.set_ylim(new_ylim)
             
-#             # Calculate means and 95% confidence intervals
-#             grouped_data = pheno.groupby('Disease')[feature]
-#             means = grouped_data.mean().reindex(order)
-#             cis = grouped_data.apply(lambda x: scipy.stats.t.interval(0.95, len(x)-1, loc=np.mean(x), scale=scipy.stats.sem(x)))
+            ## Write sample size on the plot
+            # Determine the top y-limit of the plot
+            y_max = ax.get_ylim()[1]
 
-#             # Print means and 95% confidence intervals
-#             for disease in order:
-#                 mean = means.get(disease, None)
-#                 ci = cis.get(disease, None)
-#                 if mean is not None and ci is not None:
-#                     # print(f"{disease} --> {feature}: Mean = {mean:.4f}")
-#                     print(f"{disease} --> {feature}: Mean = {mean:.4f}, 95% CI = [{ci[0]:.4f}, {ci[1]:.4f}]")
+            # Annotate bars with sample sizes just below the top line of the bounding box
+            # counts = pheno['Disease'].value_counts().reindex(order)
+            nonna_counts = pheno.groupby('Disease')[feature].apply(lambda x: x.notnull().sum()).reindex(order)
+            for j, count in enumerate(nonna_counts):
+                ax.annotate(f'{count}',#f'N={count}', 
+                            xy=(j, y_max), 
+                            xycoords='data', 
+                            textcoords='offset points', 
+                            va='top', 
+                            ha='center', 
+                            fontsize=12, 
+                            color= '#494949',
+                            xytext=(0, -5))  # Adjust the offset as needed
+
 
             # Calculate means and 95% confidence intervals
             grouped_data = pheno.groupby('Disease')[feature]
@@ -185,12 +214,22 @@ def plot(pheno, features, order, names, dir_name, plot_type, figsize=(3,3), pale
             for disease in order:
                 mean = means.get(disease, None)
                 ci = cis.get(disease, None)
-                if mean is not None and not any(np.isnan(ci)):
-                    print(f"{disease} --> {feature}: Mean = {mean:.2f}, 95% CI = [{ci[0]:.2f}, {ci[1]:.2f}]")
-                else:
-                    print(f"{disease} --> {feature}: Mean = {mean:.2f}, 95% CI = Not Available")
+                # Calculate the missing data for each group
+                nonna = pheno.groupby('Disease')[feature].apply(lambda x: x.notnull().sum()).reindex(order)
+                count = nonna.get(disease, None)  # Get the count for the disease
+                # total_count = grouped_data.count().get(disease, 0)  # Count of non-missing values
 
-            
+                if mean is not None and not any(np.isnan(ci)):
+                    if f"{ci[0]:.2f}" == f"{ci[1]:.2f}":
+                        # Print the confidence interval with more precision
+                        print(f"{disease} --> {feature}: Total = {count}, Mean = {mean:.2f}, 95% CI = [{ci[0]:.4f}, {ci[1]:.4f}]")
+                    else:
+                        # Print the confidence interval with two decimal places
+                        print(f"{disease} --> {feature}: Total = {count}, Mean = {mean:.2f}, 95% CI = [{ci[0]:.2f}, {ci[1]:.2f}]")
+                    # print(f"{disease} --> {feature}: Mean = {mean:.2f}, 95% CI = [{ci[0]:.2f}, {ci[1]:.2f}]")
+                else:
+                    print(f"{disease} --> {feature}: Total = {count}, Mean = {mean:.2f}, 95% CI = Not Available")
+
         elif plot_type == 'violin':
             ax = sns.violinplot(data=pheno, 
                                 x="Disease", 
@@ -210,15 +249,25 @@ def plot(pheno, features, order, names, dir_name, plot_type, figsize=(3,3), pale
                                line_kws = {'color':'#929292', 'linewidth': 1},
                                #showfliers = False,
                               )
-            ## Calculate means
-            # grouped_data = pheno.groupby('Disease')[feature]
-            # means = grouped_data.mean().reindex(order)
-            # # Print means 
-            # for disease in order:
-            #     mean = means.get(disease, None)
-            #     if mean is not None:
-            #         print(f"{disease} --> {feature}: Mean = {mean:.4f}")
-                    
+            ## Write sample size on the plot
+            # Determine the top y-limit of the plot
+            y_max = ax.get_ylim()[1]
+
+            # Annotate bars with sample sizes just below the top line of the bounding box
+            # counts = pheno['Disease'].value_counts().reindex(order)
+            nonna_counts = pheno.groupby('Disease')[feature].apply(lambda x: x.notnull().sum()).reindex(order)
+            for j, count in enumerate(nonna_counts):
+                ax.annotate(f'{count}',#f'N={count}', f'N={count}', 
+                            xy=(j, y_max), 
+                            xycoords='data', 
+                            textcoords='offset points', 
+                            va='top', 
+                            ha='center', 
+                            fontsize=12, 
+                            color= '#494949',
+                            xytext=(0, -5))  # Adjust the offset as needed
+
+
             # Calculate means and 95% confidence intervals
             grouped_data = pheno.groupby('Disease')[feature]
             means = grouped_data.mean().reindex(order)
@@ -230,12 +279,14 @@ def plot(pheno, features, order, names, dir_name, plot_type, figsize=(3,3), pale
             for disease in order:
                 mean = means.get(disease, None)
                 ci = cis.get(disease, None)
+                # total_count = grouped_data.count().get(disease, 0)  # Count of non-missing values
+                nonna = pheno.groupby('Disease')[feature].apply(lambda x: x.notnull().sum()).reindex(order)
+                count = nonna.get(disease, None)  # Get the count for the disease
                 if mean is not None and not any(np.isnan(ci)):
-                    print(f"{disease} --> {feature}: Mean = {mean:.2f}, 95% CI = [{ci[0]:.2f}, {ci[1]:.2f}]")
+                    print(f"{disease} --> {feature}: Total = {count},  Mean = {mean:.2f}, 95% CI = [{ci[0]:.2f}, {ci[1]:.2f}]")
                 else:
-                    print(f"{disease} --> {feature}: Mean = {mean:.2f}, 95% CI = Not Available")
+                    print(f"{disease} --> {feature}: Total = {count}, Mean = {mean:.2f}, 95% CI = Not Available")
 
-            
         elif plot_type == 'swarm':
             ax = sns.swarmplot(data=pheno, 
                                x="Disease", 
@@ -262,42 +313,18 @@ def plot(pheno, features, order, names, dir_name, plot_type, figsize=(3,3), pale
                                                    ("Control", "ACO")]
 
         # Statistical annotations
-        # feature_name = feature#.replace('Adjusted_', '').replace('corrected_', '')
-        
-        # print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
-        # print(feature_name)
-        # print('@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@', pvalues)#[feature_name])
-        
-        
-        if pvalues:# and feature_name in pvalues:
-            if apply_corrections:
-                add_stat_annotation(ax, data=pheno, 
+        if pvalues:
+            # print('=======>', pvalues[feature])
+            ## pvalues dictionary should be corrected for bonferroni
+            add_stat_annotation(ax, data=pheno, 
                                     x="Disease", y=feature, 
                                     order=order, 
                                     box_pairs=box_pairs, 
                                     perform_stat_test=False, 
-                                    pvalues = multipletests(pvalues[feature], alpha=0.05, method='bonferroni')[1],
+                                    pvalues = pvalues[feature], 
                                     test=None, 
                                     text_format='star',
                                     loc='outside',
-                                    #verbose=1, 
-                                    verbose=0, 
-                                    line_height=0, 
-                                    text_offset=2,
-                                    color='grey',
-                                    fontsize=14)
-            else:
-                add_stat_annotation(ax, data=pheno, 
-                                    x="Disease", y=feature, 
-                                    order=order, 
-                                    box_pairs=box_pairs, 
-                                    perform_stat_test=False, 
-                                    # pvalues=pvalues,#[feature_name],
-                                    pvalues = multipletests(pvalues, alpha=0.05, method='bonferroni')[1],
-                                    test=None, 
-                                    text_format='star',
-                                    loc='outside',
-                                    #verbose=1, 
                                     verbose=0, 
                                     line_height=0, 
                                     text_offset=2,
@@ -309,8 +336,7 @@ def plot(pheno, features, order, names, dir_name, plot_type, figsize=(3,3), pale
                                 x="Disease", y=feature, 
                                 order=order,
                                 box_pairs=box_pairs, 
-                                test='Mann-Whitney', #t-test_ind, t-test_welch, t-test_paired, Mann-Whitney, Mann-Whitney-gt, Mann-Whitney-ls, Levene, Wilcoxon, Kruskal.
-                                # test = "Kruskal", 
+                                test='Mann-Whitney', 
                                 text_format='star', 
                                 loc='outside',
                                 verbose=0,
@@ -320,38 +346,23 @@ def plot(pheno, features, order, names, dir_name, plot_type, figsize=(3,3), pale
                                 color='grey', 
                                 fontsize=14)
 
+
         # Calculate and print trend information
         data = [grp[feature].sum() / len(grp) for dis, grp in pheno.groupby('Disease') if dis in ['Control', 'Asthma', 'COPD', 'ACO']]
-        # we only have 4 categories here, which is not enough strength to find trends
-        # trend = mk.original_test(data)
-        # logging.info(f"{feature} --> {trend.trend} --> {np.round(trend.p, 4)}")   
-        
-        # # Get current y-tick values
-        # yticks = ax.get_yticks()
-        # # Format each y-tick value to a string with up to 4 decimal places and save to a list
-        # formatted_yticks = [f'{ytick:.4f}' for ytick in yticks]
-        # print('@@@@', formatted_yticks )
-        
-        # plt.gca().yaxis.set_major_formatter(plt.FormatStrFormatter('%.4f'))
-        
-#         # Modify y-ticks if pert is True
-#         if pert:
-#             locs, labels = plt.yticks()  # Get current y-ticks
-#             new_labels = [f"{float(label.get_text()) * 100:.1f}" for label in labels]  # Convert to float, multiply by 100, and format
-#             plt.yticks(locs, new_labels)  # Set new y-tick labels
-
 
         ylabel_fontsize = 14 if pert else 16
-    
-    
-        # Enable LaTeX rendering
-        # plt.rc('text', usetex=True)
-        # plt.rc('text.latex', preamble=r'\usepackage{amsmath}')
+        
+        # Enable LaTeX in Matplotlib
+        # plt.rcParams['text.usetex'] = True
+        plt.rcParams['axes.labelweight'] = 'bold'
+        # Define font properties for bold text
+        from matplotlib.font_manager import FontProperties
+        bold_font = FontProperties(weight='bold')
 
-        # plt.rcParams.update({"text.usetex": True})
-        ax.set_ylabel(names[i], fontsize=ylabel_fontsize, fontweight='bold') 
+
+        ax.set_ylabel(names[i], fontsize=ylabel_fontsize, fontweight='bold', fontproperties=bold_font) 
         # plt.ylabel(names[i], fontsize=ylabel_fontsize, fontweight='bold')#, color='blue', backgroundcolor='lightgrey')
-        plt.xlabel('Disease', fontsize=16, fontweight='bold')
+        plt.xlabel('Disease', fontsize=16, fontweight='bold', fontproperties=bold_font) 
         plt.xticks(fontsize=14, rotation=30)
         plt.yticks(fontsize=14)
         
@@ -363,7 +374,6 @@ def plot(pheno, features, order, names, dir_name, plot_type, figsize=(3,3), pale
 #####################################################################
 ##################### Generates forest plots ########################
 #####################################################################       
-
 def get_significance_colors(pvalues, estimates, alpha=0.05):
     """
     Generate a list of colors representing the significance of estimates based on p-values.
@@ -449,7 +459,6 @@ def get_significance_stars(pvalues):
 
     return stars
 
-
 def forest_plot(labels, estimates, lower, upper, colors, pvalues, order=None, rename=None, y = None, title="Forest Plot", xlabel="Estimate", file_path = 'Forest_plot.pdf'):
 
     """
@@ -490,10 +499,7 @@ def forest_plot(labels, estimates, lower, upper, colors, pvalues, order=None, re
     # Rename labels if 'rename' is provided
     if rename:
         data['labels'] = data['labels'].replace(rename)
-        
-    # disease_order = ['Asthma', 'COPD', 'ACO']
-    # ordered_data = data[data.labels.isin(disease_order)][['labels', 'pvalues']].set_index('labels').reindex(disease_order).reset_index()
-        
+           
     # Create plot
     fig, ax = plt.subplots(figsize=(2, len(data) * 0.3))
 
@@ -533,7 +539,6 @@ def forest_plot(labels, estimates, lower, upper, colors, pvalues, order=None, re
             p_value_text = "$<10^{-3}$"
         else:
             p_value_text = f"{row['pvalues']:.3f}"
-        # p_value_text = f"{row['pvalues']:.3f}" if row['pvalues'] >= 0.001 else "$<10^{-3}$"
         
         # Apply offsets in the text positioning
         ax.text(offset_pvalue, i, p_value_text, ha='left', va='center', fontsize=9)
@@ -552,7 +557,12 @@ def forest_plot(labels, estimates, lower, upper, colors, pvalues, order=None, re
     # Change the fontsize of x-axis tick labels
     ax.tick_params(axis='x', labelsize=10)
 
+    
     ax.set_xlim([-max_value-1, max_value+1])
+    
+    # print('#################################', title)
+    # if title == 'Eosinophils':
+    #     ax.set_xlim([-max_value, max_value])
     
     ## Title
     title_x_position = (max_value) / 2  #(2*max_value + 2) / 2  # This centers the title by placing it in the middle of the x-axis
@@ -564,11 +574,6 @@ def forest_plot(labels, estimates, lower, upper, colors, pvalues, order=None, re
     # # Add grid lines without losing ticks
     plt.grid(True, linestyle="--", alpha=0.7)   # Customize grid appearance as needed
     sns.despine(left=True, right=True, top=True)
-    
-    # plt.tight_layout()
-    # plt.close()
-    # plt.grid(True, linestyle="--", alpha=0.7)
-    # plt.tight_layout()
     
     plt.savefig(file_path, bbox_inches='tight')
     plt.close(fig)

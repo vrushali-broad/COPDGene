@@ -55,7 +55,6 @@ log_with_timestamp(paste("pathview version:", packageVersion("pathview")))
 log_with_timestamp(paste("gage version:", packageVersion("gage")))
 log_with_timestamp(paste("gage data version:", packageVersion("gageData")))
 
-
 # Function to perform KEGG pathway analysis and plotting
 plot_kegg_pathway <- function(data_file, kegg_id, colors) {
     
@@ -110,6 +109,15 @@ colors_aco <- colors_copd
 # plot_kegg_pathway(data_file = 'Data/Processed_Data/DE_COPD.csv', kegg_id = 'hsa04064', colors = colors_copd)
 plot_kegg_pathway(data_file = 'Data/Processed_Data/DE_COPD.csv', kegg_id = 'hsa04217', colors = colors_copd)
 plot_kegg_pathway(data_file = 'Data/Processed_Data/DE_COPD.csv', kegg_id = 'hsa04613', colors = colors_copd)
+
+## Plot ACO
+plot_kegg_pathway(data_file = 'Data/Processed_Data/DE_ACO.csv', kegg_id = 'hsa04066', colors = colors_copd) # HIF-1 signaling pathway
+# plot_kegg_pathway(data_file = 'Data/Processed_Data/DE_ACO.csv', kegg_id = 'hsa00051', colors = colors_copd) # Fructose and mannose metabolism
+plot_kegg_pathway(data_file = 'Data/Processed_Data/DE_ACO.csv', kegg_id = 'hsa00520', colors = colors_copd) # Amino sugar and nucleotide sugar metabolism
+plot_kegg_pathway(data_file = 'Data/Processed_Data/DE_ACO.csv', kegg_id = 'hsa01250', colors = colors_copd) # Biosynthesis of nucleotide sugars
+
+
+
 
 
 

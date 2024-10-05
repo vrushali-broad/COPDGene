@@ -21,44 +21,36 @@ Author: Vrushali D. Fangal,
 Date: March 22, 2024
 License: MIT license
 """
-
 import os
 import logging
-import pandas as pd
 import seaborn as sns
-import matplotlib.pyplot as plt
 import warnings
 warnings.filterwarnings('ignore', category=UserWarning, module='matplotlib')
 
 # Assuming these are your modular functions from different modules
 from visualization_helpers import plot  
 from data_processing import load_and_preprocess_meta, load_and_preprocess_counts, load_and_preprocess_pheno
-from patient_classification import classify_subjects, plot_subject_distribution
+from patient_classification import classify_subjects, plot_subject_distribution, classify_subjects_LLN
 from patient_statistics import generate_statistics_table
 
 from analyze_symptoms import analyze_and_plot_symptoms, analyze_and_plot_hospitalizations
 from analyze_cbc import analyze_and_plot_cbc, create_colorbar, create_correlation_heatmap, create_correlation_heatmap_per_disease
-from correct_confounders_pft import perform_regression_analysis
-from correct_confounders_ct import correct_ct_scan_features, correct_contrast_ct_scan_features
+# from model_bootstrap_transform import perform_regression_analysis_bootstrap
+from model_bootstrap import perform_regression_analysis_bootstrap
 
 ## Import feature names
 from pheno_features import CT_FEATURES, CT_NAMES, CT_order_names, CT_rename
 from pheno_features import PFT_FEATURES, PFT_NAMES, PFT_order_names, PFT_rename
 
+## Import test functions
+from utils import perform_mwu_test
+from utils import create_directory_if_not_exists
+from utils import apply_transformations, inverse_transform
+
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s: %(message)s')
-
-def create_directory_if_not_exists(directory):
-    """Create a directory if it does not exist."""
-    try:
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-            logging.info(f"Created directory: {directory}")
-    except Exception as e:
-        logging.error(f"Error creating directory {directory}: {e}")
-        raise
         
-def plot_features(pheno, features, order, names, plot_type, dir_name, pvalues_lst=None, figsize = (3,3), palette = None, sig=False):
+def plot_features(pheno, features, order, names, plot_type, dir_name, pvalues=None, figsize = (3,3), palette = None, sig=False):
     """
     Plot features from the given phenotypic data.
 
@@ -69,7 +61,7 @@ def plot_features(pheno, features, order, names, plot_type, dir_name, pvalues_ls
         names (list): Names for each feature to be used in the plot.
         plot_type (str): Type of plot to create (e.g., 'bar', 'box').
         dir_name (str): Directory to save the plots.
-        pvalues_lst (dict, optional): Dictionary of p-values for statistical annotation.
+        pvalues (dict, optional): Dictionary of p-values for statistical annotation.
         figsize (tuple, optional): Size of the figure. Defaults to (3, 3).
         palette (list, optional): Color palette for the plots. Defaults to a predefined palette.
         sig (bool, optional): Whether to include additional statistical annotations. Defaults to False.
@@ -88,8 +80,8 @@ def plot_features(pheno, features, order, names, plot_type, dir_name, pvalues_ls
     for feature in features:
         try:
             # Extract p-values for the current feature, if available
-            feature_pvalues = pvalues_lst.get(feature, None) if pvalues_lst else None
-            
+            # feature_pvalues = pvalues_lst.get(feature, None) if pvalues_lst else None
+            # print('&&&&&&', feature, pvalues)
             plot(pheno=pheno,
                  features=[feature],  # Wrapping feature in a list for compatibility
                  order=order,
@@ -97,7 +89,7 @@ def plot_features(pheno, features, order, names, plot_type, dir_name, pvalues_ls
                  plot_type=plot_type,
                  dir_name=dir_name,
                  palette=palette,
-                 pvalues=feature_pvalues,  # Use p-values if available
+                 pvalues=pvalues,  # Use p-values if available
                  figsize=figsize,
                  sig=sig)  # Pass the sig argument
             logging.info(f"Plot generated for feature: {feature}")
@@ -140,9 +132,26 @@ def load_and_prepare_data(data_dir, processed_data_dir, figures_dir):
         logging.info("Classifying subjects by disease...")
         pheno = classify_subjects(pheno)
         
+        ############################### Disease LLN ###############################
+        # Uncomment to analyze based on LLN
+        pheno = classify_subjects_LLN(pheno)
+        
+        changed_categories = pheno[pheno['Disease'] != pheno['Disease_LLN']]
+        # Count occurrences based on 'Disease' and 'Disease_LLN'
+        disease_counts = changed_categories.groupby(['Disease', 'Disease_LLN']).size().reset_index(name='counts')
+        logging.info('Changes in disease categories:\n%s', disease_counts.to_string(index=False))
+        ############################################################################
+        
         # Remove smokers before processing
         logging.info("Removing non-smokers and filtering data...")
         pheno = pheno[pheno.Disease.notna() & (pheno.Disease != 'Non-smoker')]
+        
+        ##################### Disease LLN #########################
+        # Uncomment to analyze based on LLN
+        pheno = pheno.query("Disease_LLN != 'Excluded'")
+        pheno['Disease'] = pheno['Disease_LLN']
+        ###########################################################
+        
         logging.info(f"Filtered pheno data of smokers: {pheno.shape}")
 
         # Updating subjects, counts, and meta based on filtered pheno data
@@ -154,11 +163,6 @@ def load_and_prepare_data(data_dir, processed_data_dir, figures_dir):
 
         meta = meta.loc[subjects]
         logging.info(f"Updated meta data shape: {meta.shape}")
-        
-        # Log total number of subjects and disease distribution
-        # logging.info(f"Total subjects: {len(pheno)}")
-        # disease_distribution = pheno['Disease'].value_counts().to_string()
-        # logging.info(f"Disease distribution:\n{disease_distribution}")
         
         # Saving processed data
         logging.info("Saving processed data...")
@@ -211,7 +215,7 @@ def analyze_disease_distribution(pheno, figures_dir):
         logging.error(f"Error in analyzing disease distribution: {e}")
         raise
 
-def correct_and_plot_pft(pheno, features, names, disease_order, order_names, rename, dir_name, formula):
+def correct_and_plot_pft(pheno, features, names, disease_order, order_names, rename, dir_name, formula, transformation=None):
     """
     Corrects pulmonary function test (PFT) features for confounders using regression models and plots the adjusted values.
 
@@ -230,30 +234,45 @@ def correct_and_plot_pft(pheno, features, names, disease_order, order_names, ren
     logging.info("#################################################################################")
     logging.info("### Correcting PFT features for confounders age, gender, race, and height... ####")
     logging.info("#################################################################################")
+    
+    # Apply transformations if specified
+    if transformation:
+        pheno, transformer = apply_transformations(pheno, features, transformation)
+        features = [f'{transformation}_{feature}' for feature in features]
+        logging.info(f"Applied {transformation} transformation to features: {features}")
 
     ## Correct PFT for confounders
-    adj_pheno, pvalues_lst = perform_regression_analysis(pheno, features, names, 
+    adj_pheno, pvalues = perform_regression_analysis_bootstrap(pheno, features, names, 
                                                          order_names, rename, formula,
-                                                         dir_name = dir_name)
-        
+                                                         dir_name = dir_name,
+                                                         contrast= True)
+    
     ## Plot adjusted values
     adj_features = ['Adjusted_'+col for col in features]
-
+    
+    if transformation:
+        for i, feature in enumerate(adj_features):
+            transformer_name = features[i].replace(f"{transformation}_", "")
+            adj_pheno[feature] = transformer[transformer_name].inverse_transform(adj_pheno[[feature]])
+    
     # Plotting the lung function data
-    plot_features(pheno = adj_pheno, features = adj_features, 
-                  order = disease_order, names = names, plot_type = 'box', 
+    plot_features(pheno = adj_pheno, 
+                  features = adj_features, 
+                  order = disease_order, 
+                  names = names, 
+                  plot_type = 'box', 
                   dir_name = dir_name, 
-                  # pvalues_lst = pvalues_lst, 
+                  pvalues = pvalues, 
                   figsize = (3,3),
                   sig = False
                  )
     
     logging.info("PFT features correction and plotting completed.")
-    return adj_pheno, pvalues_lst        
+    return adj_pheno, pvalues       
     
 def correct_and_plot_ct_scan_features(pheno, outcomes, names, disease_order,
-                                      order_names, rename, dir_path, formula,
-                                      plot_type='box', figsize=(3, 3), sig=False):
+                                      order_names, rename, dir_name, formula,
+                                      plot_type='box', figsize=(3, 3), sig=False, transformation=None):
     """
     Correct CT scan features for confounders and plot the adjusted features.
 
@@ -261,7 +280,7 @@ def correct_and_plot_ct_scan_features(pheno, outcomes, names, disease_order,
         pheno (pd.DataFrame): DataFrame containing phenotypic data including CT scan values.
         outcomes (list): List of outcome variables (CT scan features) to adjust.
         names (list): Names corresponding to each outcome for plotting.
-        dir_path (str): Directory path to save the plots.
+        dir_name (str): Directory path to save the plots.
         formula (str): Template formula for the OLS regression model.
         order_names (list): List of names defining the order of factors in the model.
         rename (dict): Dictionary for renaming factors in the model.
@@ -277,34 +296,53 @@ def correct_and_plot_ct_scan_features(pheno, outcomes, names, disease_order,
     logging.info("########################################################################################")
     try:
         logging.info("Starting correction of CT scan features for confounders...")
-
-        # Correct CT scan features for confounders
-        # adj_pheno, pvalues_lst = correct_ct_scan_features(pheno, outcomes, names, dir_path, formula, order_names, rename)
-
-        # Alternatively, use correct_contrast_ct_scan_features if needed
-        adj_pheno, pvalues_lst = correct_contrast_ct_scan_features(pheno, outcomes, names, dir_path, formula, order_names, rename)
         
- 
+        # Apply transformations if specified
+        if transformation:
+            pheno, transformer = apply_transformations(pheno, outcomes, transformation)
+            outcomes = [f'{transformation}_{outcome}' for outcome in outcomes]
+            logging.info(f"Applied {transformation} transformation to outcomes: {outcomes}")
+
+        # Adjust for confounders        
+        adj_pheno, pvalues = perform_regression_analysis_bootstrap(pheno,
+                                                                   outcomes, 
+                                                                   names, 
+                                                                   order_names, 
+                                                                   rename, 
+                                                                   formula,
+                                                                   dir_name = dir_name,
+                                                                   contrast= True,
+                                                                   ct = True)
+
         # Plot adjusted values
         adj_features = ['Adjusted_' + col for col in outcomes]
         
-        # print('xxxxxxxx')
-        # print(pvalues_lst)
-        # print('yyyyyyyyy')
+        # print('=====>>>>>>>', pvalues, [type(x) for x in pvalues['Adjusted_quantile_pctEmph_Thirona_P2']])
+        
+        if transformation:
+            for i, feature in enumerate(adj_features):
+                transformer_name = outcomes[i].replace(f"{transformation}_", "")
+                adj_pheno[feature] = transformer[transformer_name].inverse_transform(adj_pheno[[feature]])
 
+        # # Initialize a dictionary to store p-values
+        # p_values = {feature: [] for feature in adj_features}
+        # for feature in adj_features:
+        #     p_values[feature] = perform_mwu_test(adj_pheno, feature, disease_order, ct = True)
+            
         # Plotting the CT scan data
         plot_features(pheno=adj_pheno,
                       features=adj_features,
                       order=disease_order,  # Order of disease categories
                       names=names,
                       plot_type=plot_type,
-                      dir_name=dir_path,
-                      # pvalues_lst=pvalues_lst,
+                      dir_name=dir_name,
+                      pvalues=pvalues,
+                      # pvalues=p_values,
                       figsize=figsize,
                       sig=sig)
 
         logging.info("Correction and plotting of CT scan features completed successfully.")
-        return adj_pheno, pvalues_lst
+        # return adj_pheno, pvalues
     
     except Exception as e:
         logging.error(f"An error occurred while correcting and plotting CT scan features: {e}")
@@ -320,7 +358,7 @@ def main():
         # Initial setup: Define base directories and other necessary variables
         # Define the base directories for raw data and processed results
         data_dir = '/udd/revfa/0.COPDGene/Clinical_Phenotypes/Data'
-        processed_data_dir = 'Processed_Data' #os.path.join(data_dir, 'Processed_Data')
+        processed_data_dir = 'Processed_Data' 
         figures_dir = 'Figures'
         
         # Directories for storing figures related to specific analyses
@@ -339,6 +377,13 @@ def main():
         # This function handles the loading of meta, counts, and pheno data,
         # classifies subjects by disease, removes non-smokers, and updates subjects, counts, and meta.
         
+        ### Delete this
+        # ##################### Disease LLN #########################
+        # # Uncomment to analyze based on LLN
+        # pheno = pheno.query("Disease_LLN != 'Excluded'")
+        # pheno['Disease'] = pheno['Disease_LLN']
+        # ###########################################################
+        
         # 1. Log the total number of subjects and their disease distribution.
         # 2. Generate and save a plot illustrating the distribution of patients.
         # 3. Create and save a statistics table summarizing the phenotypic data.
@@ -347,7 +392,7 @@ def main():
         # Define plotting order for diseases
         order = ['Control', 'Asthma', 'COPD', 'ACO']
         
-        # Perform analysis and plotting for symptoms
+        # Perform analysis and plotting for symptomss
         logging.info("Starting analysis and plotting of symptoms...")
         analyze_and_plot_symptoms(pheno, order, symptoms_dir)
         # This function focuses on analyzing and visualizing the symptom data.
@@ -365,51 +410,60 @@ def main():
         create_colorbar(cbc_dir, cmap = cmap)
         create_correlation_heatmap(pheno, cbc_dir, cmap = cmap)
         create_correlation_heatmap_per_disease(pheno, 'Disease', cbc_dir, cmap = cmap)
-
         # This function deals with the analysis and visualization of CBC data.
-
-        # Define the formula for PFT regression model
+        
+        # Define the formula for PFT regression model (Intercept added by default)
         formula_pft = "{outcome} ~ Age_P2 +  C(gender) + C(race)  + Height_CM_P2 + C(Disease, Treatment(reference='Control'))"
-
-        adj_pheno, pvalues_lst = correct_and_plot_pft(pheno = pheno, 
-                                                      features = PFT_FEATURES,
-                                                      names = PFT_NAMES,
-                                                      disease_order = order,
-                                                      order_names = PFT_order_names, 
-                                                      rename = PFT_rename,
-                                                      dir_name = pft_dir,
-                                                      formula = formula_pft)
+        # pheno['Resting_SaO2_P2'] = pheno['Resting_SaO2_P2']/100
+        adj_pheno, p_values = correct_and_plot_pft(pheno = pheno, 
+                                                    features = PFT_FEATURES,
+                                                    names = PFT_NAMES,
+                                                    disease_order = order,
+                                                    order_names = PFT_order_names, 
+                                                    rename = PFT_rename,
+                                                    dir_name = pft_dir,
+                                                    formula = formula_pft,
+                                                    transformation = 'yeojohnson'
+                                                    )
         # This function adjusts lung function features considering various confounders.
 
         # Plot features that are already adjusted and do not require adjustment
         pheno['TLC_pp_P2'] = pheno['TLC_Thirona_P2'] * 100/ pheno['TLC_pred_plethy_P2']
-        pheno['FEV1_FVC_pp_P2'] = pheno['FEV1_FVC_post_P2']* 100/pheno['Pred_FEV1_FVC_P2']
-        features = ['TLC_pp_P2', 'DLCO_GLI_pp_PbHb_adj_P2', 'FEV1pp_post_P2', 'FEV1_FVC_pp_P2']#,  'FVCpp_post_P2'] ##'FEV1pp_post_P2',
-        # names = ['TLC', r'$\mathbf{DL_{CO}}$', 'FEV1pp', 'FEV1_FVC_pp_P2']#, 'FVCpp_post_P2'] #r'FEV$_1$ (%)',
-        names = ['TLC', r'$DL_{CO}$', r'$FEV_{1}$', r'$FEV_{1}/FVC$']
-        # names = labels = [
-        #                     r'$\mathbf{TLC}$',
-        #                     r'$\mathbf{DL_{CO}}$',
-        #                     r'$\mathbf{FEV_{1}}$',
-        #                     r'$\mathbf{FEV_{1}/FVC}$'
-        #                 ]
+        # pheno['FEV1_FVC_pp_P2'] = pheno['FEV1_FVC_post_P2']* 100/pheno['Pred_FEV1_FVC_P2']
+        features = ['TLC_pp_P2', 'DLCO_GLI_pp_PbHb_adj_P2', 'FEV1pp_post_P2'] #['TLC_pp_P2', 'DLCO_GLI_pp_PbHb_adj_P2', 'FEV1pp_post_P2', 'FEV1_FVC_pp_P2']
+        names = ['TLC', r'$DL_{CO}$', r'$FEV_{1}$'] #['TLC', r'$DL_{CO}$', r'$FEV_{1}$', r'$FEV_{1}/FVC$']
 
-
-        plot_features(pheno = pheno, features = features, order = order,
-                      names = names, plot_type = 'box',
+        # Initialize a dictionary to store p-values
+        p_values = {feature: [] for feature in features}
+        for feature in features:
+            p_values[feature] = perform_mwu_test(pheno, feature, order)
+            
+        plot_features(pheno = pheno, 
+                      features = features, 
+                      order = order,
+                      names = names, 
+                      pvalues = p_values,
+                      plot_type = 'box',
                       dir_name = pft_dir, 
                       figsize = (3,3),
-                     sig = False)
+                      sig = False)
         # This function handles the plotting of lung function data post-adjustment.
 
-        # Correct CT scan features for confounders
+        # Correct CT scan features for confounders (Intercept added by default)
         formula_CT = "{outcome} ~ Age_P2 + BMI_P2 + C(gender) + C(race) + C(smoking_status_P2) + C(scannerId_P2) + C(Disease, Treatment(reference='Control'))"
 
-        adj_pheno, pvalues_lst = correct_and_plot_ct_scan_features(pheno = pheno, outcomes = CT_FEATURES, 
-                                                                   names = CT_NAMES, disease_order = order,
-                                                                   order_names = CT_order_names, rename = CT_rename,  
-                                                                   dir_path = ct_dir, formula = formula_CT, 
-                                                                   sig = True)
+        correct_and_plot_ct_scan_features(pheno = pheno, 
+                                        outcomes = CT_FEATURES, 
+                                        names = CT_NAMES, 
+                                        disease_order = order,
+                                        order_names = CT_order_names,
+                                        rename = CT_rename,  
+                                        dir_name = ct_dir, 
+                                        formula = formula_CT, 
+                                        sig = True,
+                                        # transformation = 'yeojohnson'
+                                        transformation = 'quantile'
+                                        )
         # This function adjusts CT scan features for confounders and generates relevant plots.
 
         logging.info("Data processing and analysis completed successfully.")

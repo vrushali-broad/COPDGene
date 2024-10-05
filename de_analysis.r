@@ -42,14 +42,6 @@ library("org.Hs.eg.db")  # For gene annotation
 library(data.table)      # For data manipulation
 library("biomaRt")
 
-# library('Biobase')
-# library('limma')
-# library("edgeR")
-# library('RColorBrewer')
-# library("AnnotationDbi")
-# library("org.Hs.eg.db")
-# library(data.table)
-
 # Define the logging function
 log_with_timestamp <- function(message) {
     timestamp <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
@@ -67,7 +59,6 @@ log_with_timestamp(paste("biomaRt version:", packageVersion("biomaRt")))
 # message("Setting up paths...")
 log_with_timestamp("Setting up paths...")
 PATH <- getwd()
-# PATH_DATA <- PATH #paste(PATH, 'Data', sep = .Platform$file.sep)
 
 # # Save human annotations 
 # log_with_timestamp("Retrieving and saving human annotations...")
@@ -100,8 +91,14 @@ log_with_timestamp(metadata_message)
 
 # Subset counts to match metadata
 log_with_timestamp("Subsetting counts to match metadata...")
+# meta <- meta[meta$smoking_status_P2 == 2, ] ## Subset to Current smokers
 counts <- counts[, rownames(meta)]
 annot <- annot[rownames(counts),]
+
+# Find the different diseases in this subset
+unique_diseases <- unique(meta$Disease)
+log_with_timestamp(paste("Unique diseases in former smokers:", paste(unique_diseases, collapse = ", ")))
+
 
 # Prepare DGEList object
 log_with_timestamp("Preparing DGEList object...")
@@ -115,7 +112,6 @@ x$samples$Batch <- Batch
 
 ## Use control as reference
 group <- relevel(group, ref = "Control")
-# levels(group)
 
 # Filter lowly expressed genes
 log_with_timestamp("Filtering lowly expressed genes...")
@@ -136,7 +132,8 @@ Gender <- factor(meta$gender)
 Currentsmoking <- factor(meta$smoking_status_P2)
 ATS_PackYears <- meta$ATS_PackYears_P2
 Age_Enroll <- meta$Age_P2
-design <- model.matrix(~0 + group + Batch + Age_Enroll + Gender + Currentsmoking + ATS_PackYears )
+design <- model.matrix(~0 + group + Batch + Age_Enroll + Gender + Currentsmoking + ATS_PackYears)
+# design <- model.matrix(~0 + group + Batch + Age_Enroll + Gender + ATS_PackYears)
 
 # Define the design matrix for batch correction
 # Log-transform the counts
@@ -145,8 +142,9 @@ logCPM <- cpm(x, log = TRUE, prior.count=5) # 'prior.count' adds a small number 
 log_with_timestamp("Log-transformation completed.")
 
 # Batch correction using removeBatchEffect
-log_with_timestamp("Performing batch correction with ComBat...")
+log_with_timestamp("Performing batch correction with removeBatchEffect...")
 bc_design <- model.matrix(~0 + group + Age_Enroll + Gender + Currentsmoking + ATS_PackYears)  # Exclude Batch if it's part of the design matrix for DE analysis
+# bc_design <- model.matrix(~0 + group + Age_Enroll + Gender +  ATS_PackYears)  # Exclude Batch if it's part of the design matrix for DE analysis
 lcpm_bc <- removeBatchEffect(logCPM, batch = x$samples$Batch, design = bc_design)
 write.csv(lcpm_bc, paste(PATH, 'Data/Processed_Data/normalized_batch_corrected_gene_counts.csv', sep = .Platform$file.sep))
 log_with_timestamp("Batch correction process completed.")
@@ -171,6 +169,32 @@ cm <- makeContrasts(
     AsthmavsControl = groupAsthma - groupControl,
     ACOvsCOPD = groupACO - groupCOPD,
     ACOvsAsthma = groupACO - groupAsthma,
+    AsthmavsCOPD = groupAsthma - groupCOPD,
+    # CombinedEffect = (groupAsthma - groupControl) + (groupACO - groupControl) - (groupCOPD - groupControl),
+    # Effect = groupAsthma + groupACO - groupCOPD - groupControl,
+    
+#     interaction_term = groupACO - groupAsthma:groupCOPD,
+#     ACO.Asthma = (groupACO:groupAsthma),
+#     ACO.COPD = (groupACO:groupCOPD),
+#     ACOinAsthmaContext = (groupACO + groupACO:groupAsthma) - groupAsthma,  #unique effect of the ACO condition in the presence of asthma
+#     ACOinCOPDContext = (groupACO + groupACO:groupCOPD) - groupCOPD,
+#     AsthmaWithoutACO = groupAsthma - (groupACO + groupACO:groupAsthma),
+#     COPDWithoutACO = groupCOPD - (groupACO + groupACO:groupAsthma),
+#     check = groupACO - groupACO:groupCOPD,
+    
+    # ACOvsAsthmaCOPDInteraction = AsthmaCOPDInteractionACO - AsthmaCOPDInteractionOther,
+    # AsthmaCOPDInteraction = groupACO - AsthmaCOPDInteraction,
+    # ACOvsAsthmaCOPDInteraction = groupACO - (groupAsthma + groupCOPD)/2,
+    # ACOvsAsthmaCOPDInteraction = interaction_term,
+    # InteractionEffect = (groupACO - groupAsthma) - (groupCOPD - groupControl),
+    # CombinedEffect = (groupCOPD - groupControl) + (groupACO - groupControl) - (groupAsthma - groupControl),
+    # ACOvsAsthmaCOPDInteraction = groupACO - (groupAsthma + groupCOPD - groupAsthma:groupCOPD),
+    # Alleviation = groupACO - (groupCOPD + groupAsthma - groupControl),
+    # interaction_term = groupACO - groupAsthma:groupCOPD,
+    # InteractionEffect = groupACO - (groupAsthma + groupCOPD)/2, 
+    # AsthmaCOPDInteraction = (groupAsthma + groupCOPD + groupAsthma:groupCOPD) - groupControl,
+    # ACO_vs_Asthma_COPD_Interaction = (groupACO - (groupAsthma + groupCOPD) + groupControl),
+
     levels = design
 )
 
@@ -214,7 +238,7 @@ for (dis in diseases) {
 
     down_genes <- summary(results)['Down',cond]
     up_genes <- summary(results)['Up',cond]
-
+    
     res <- topTable(efit, coef=cond, number=Inf, sort.by='p')
     de_genes <- head(res, up_genes + down_genes)
     
@@ -258,3 +282,5 @@ gene_names <- rownames(lcpm_bc)
 write.table(gene_names, file = paste(PATH, "Data/Processed_Data/gene_names.txt", sep = .Platform$file.sep), row.names = FALSE, col.names = FALSE, quote = FALSE)
 
 log_with_timestamp("DE analysis completed.")
+
+
