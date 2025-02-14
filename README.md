@@ -2,6 +2,8 @@
 
 This repository contains a Python script designed for the processing, analysis, and visualization of clinical phenotypic data related to pulmonary diseases. It integrates various data handling and preprocessing techniques, statistical analysis, and visualization to provide insights into the impact of diseases on patient phenotypes.
 
+Fangal, V. D., Saferali, A., Castaldi, P. J., Hersh, C. P., & Weiss, S. T. (2024). Distinct physiological, transcriptomic, and imaging characteristics of asthma‐COPD overlap compared to asthma and COPD in smokers. eBioMedicine, 110. https://doi.org/10.1016/j.ebiom.2024.105453
+
 ## Features
 
 - **Data Loading and Preprocessing:** Load and preprocess metadata, gene expression counts, and phenotypic information.
